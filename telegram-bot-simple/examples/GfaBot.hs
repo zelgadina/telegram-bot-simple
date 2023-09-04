@@ -3,75 +3,74 @@
 
 module Main where
 
+import           Data.Aeson
+import qualified Data.ByteString.Lazy as L
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as TIO
-import           Data.Aeson
-import           Network.HTTP.Conduit (simpleHttp)
-import qualified Data.ByteString.Lazy as L
 import           GHC.Generics
+import           Network.HTTP.Conduit (simpleHttp)
 
--- import Telegram.Bot.API
--- import Telegram.Bot.Simple
+import Telegram.Bot.API
+import Telegram.Bot.Simple
 -- import Telegram.Bot.Simple.UpdateParser
 
+type Model = ()
 
--- type Model = ()
-
--- data Action
---   = Inline Text
---   | Advice Text
-
-data Response = Response
-  { responseId    :: Int
-  , responseText  :: Text
-  , responseSound :: Text
+data Action = Advice Text
+  
+data AdviceResponse = AdviceResponse
+  { adviceResponseId    :: Int
+  , adviceResponseText  :: Text
+  , adviceResponseSound :: Text
   } deriving (Generic, Show)
 
-instance FromJSON Response where
-    parseJSON = withObject "Response" $ \v -> Response
-        <$> v .: "id"
-        <*> v .: "text"
-        <*> v .: "sound"
+instance FromJSON AdviceResponse where
+  parseJSON = withObject "AdviceResponse" $ \v -> AdviceResponse
+    <$> v .: "id"
+    <*> v .: "text"
+    <*> v .: "sound"
 
 adviceURL :: String
 adviceURL = "https://fucking-great-advice.ru/api/random"
 
-getJSON :: IO L.ByteString
-getJSON = simpleHttp adviceURL
+gfaBot :: BotApp Model Action
+gfaBot = BotApp
+  { botInitialModel = ()
+  , botAction = flip updateToAction
+  , botHandler = handleAction
+  , botJobs = []
+  }
 
-getAdvice :: L.ByteString -> Text
-getAdvice j = case decode' j :: Maybe Response of
-    Just advice -> responseText advice
-    _           -> "error parsing JSON"
+updateToAction :: Model -> Update -> Maybe Action
+updateToAction _ update = Just (Advice "fucking monad")
 
-main :: IO ()
-main = do
-    adviceJSON <- getJSON
-    let advice = getAdvice adviceJSON
-    TIO.putStr advice
+handleAction :: Action -> Model -> Eff Action Model
+handleAction action model = case action of
+  Advice a -> model <# do
+    replyText $ a
 
--- bashBot :: BotApp Model Action
--- bashBot = BotApp
---   { botInitialModel = ()
---   , botAction = updateToAction
---   , botHandler = handleAction
---   , botJobs = []
---   }
+getAdviceJSON :: IO L.ByteString
+getAdviceJSON = simpleHttp adviceURL
 
--- updateToAction :: Update -> Model -> Maybe Action
-
-
--- handleAction :: Action -> Model -> Eff Action Model
-
-
--- run :: Token -> IO ()
--- run token = do
---   env <- defaultTelegramClientEnv token
---   startBot_ bashBot env
+getAdviceText :: L.ByteString -> Text
+getAdviceText j = case decode' j :: Maybe AdviceResponse of
+  Just advice -> adviceResponseText advice
+  _           -> "error parsing JSON"
 
 -- main :: IO ()
 -- main = do
---   putStrLn "Please, enter Telegram bot's API token:"
---   token <- Token . Text.pack <$> getLine
---   run token
+--     adviceJSON <- getAdviceJSON
+--     let advice = getAdviceText adviceJSON
+--     TIO.putStr advice
+
+run :: Token -> IO ()
+run token = do
+  env <- defaultTelegramClientEnv token
+  startBot_ gfaBot env
+
+main :: IO ()
+main = do
+  putStrLn "Please, enter Telegram bot's API token:"
+  token <- Token . Text.pack <$> getLine
+  run token
