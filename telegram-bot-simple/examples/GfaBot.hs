@@ -7,9 +7,10 @@ import           Data.Aeson
 import qualified Data.ByteString.Lazy as L
 import           Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.Text.IO as TIO
 import           GHC.Generics
 import           Network.HTTP.Conduit (simpleHttp)
+import           Control.Monad.IO.Class (liftIO)
+
 
 import Telegram.Bot.API
 import Telegram.Bot.Simple
@@ -48,7 +49,9 @@ updateToAction _ update = Just (Advice "fucking monad")
 handleAction :: Action -> Model -> Eff Action Model
 handleAction action model = case action of
   Advice a -> model <# do
-    replyText $ a
+    adviceJSON <- liftIO getAdviceJSON
+    let advice = getAdviceText adviceJSON
+    replyText $ advice
 
 getAdviceJSON :: IO L.ByteString
 getAdviceJSON = simpleHttp adviceURL
@@ -57,12 +60,6 @@ getAdviceText :: L.ByteString -> Text
 getAdviceText j = case decode' j :: Maybe AdviceResponse of
   Just advice -> adviceResponseText advice
   _           -> "error parsing JSON"
-
--- main :: IO ()
--- main = do
---     adviceJSON <- getAdviceJSON
---     let advice = getAdviceText adviceJSON
---     TIO.putStr advice
 
 run :: Token -> IO ()
 run token = do
