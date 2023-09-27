@@ -259,8 +259,8 @@ executable example-todo-bot
   else
     buildable: False
 
-executable example-gfa-bot
-  main-is: examples/GfaBot.hs
+executable example-fga-bot
+  main-is: examples/FgaBot.hs
   other-modules:
       Paths_telegram_bot_simple
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N

@@ -35,8 +35,8 @@ instance FromJSON AdviceResponse where
 adviceURL :: String
 adviceURL = "https://fucking-great-advice.ru/api/random"
 
-gfaBot :: BotApp Model Action
-gfaBot = BotApp
+fgaBot :: BotApp Model Action
+fgaBot = BotApp
   { botInitialModel = ()
   , botAction = flip updateToAction
   , botHandler = handleAction
@@ -64,7 +64,7 @@ getAdviceText j = case decode' j :: Maybe AdviceResponse of
 run :: Token -> IO ()
 run token = do
   env <- defaultTelegramClientEnv token
-  startBot_ gfaBot env
+  startBot_ fgaBot env
 
 main :: IO ()
 main = do
