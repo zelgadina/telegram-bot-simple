@@ -10,15 +10,16 @@ import qualified Data.Text as Text
 import           GHC.Generics
 import           Network.HTTP.Conduit (simpleHttp)
 import           Control.Monad.IO.Class (liftIO)
+import           Data.Maybe (isJust)
 
 
 import Telegram.Bot.API
 import Telegram.Bot.Simple
--- import Telegram.Bot.Simple.UpdateParser
+import Telegram.Bot.Simple.UpdateParser
 
 type Model = ()
 
-data Action = Advice Text
+data Action = Advice
   
 data AdviceResponse = AdviceResponse
   { adviceResponseId    :: Int
@@ -44,11 +45,13 @@ fgaBot = BotApp
   }
 
 updateToAction :: Model -> Update -> Maybe Action
-updateToAction _ update = Just (Advice "fucking monad")
+updateToAction _ update 
+  | isJust $ parseUpdate (command "advice") update = Just Advice
+  | otherwise = Nothing
 
 handleAction :: Action -> Model -> Eff Action Model
 handleAction action model = case action of
-  Advice a -> model <# do
+  Advice -> model <# do
     adviceJSON <- liftIO getAdviceJSON
     let advice = getAdviceText adviceJSON
     replyText $ advice
