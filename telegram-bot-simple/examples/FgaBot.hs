@@ -19,7 +19,7 @@ import Telegram.Bot.Simple.UpdateParser
 
 type Model = ()
 
-data Action = Advice
+data Action = Start | Advice
   
 data AdviceResponse = AdviceResponse
   { adviceResponseId    :: Int
@@ -46,7 +46,9 @@ fgaBot = BotApp
 
 updateToAction :: Model -> Update -> Maybe Action
 updateToAction _ update 
+  | isJust $ parseUpdate (command "start") update = Just Start
   | isJust $ parseUpdate (command "advice") update = Just Advice
+  | isJust $ parseUpdate (commandWithBotName "hsssss_bot" "advice") update = Just Advice
   | otherwise = Nothing
 
 handleAction :: Action -> Model -> Eff Action Model
@@ -55,6 +57,13 @@ handleAction action model = case action of
     adviceJSON <- liftIO getAdviceJSON
     let advice = getAdviceText adviceJSON
     replyText $ advice
+  Start -> model <# do
+    replyText $ startMessage where
+      startMessage = Text.unlines
+            [ "Привет, я бот, который умеет давать рандомные охуенные советы."
+            , ""
+            , "Чтобы получить совет, воспользуйтесь командой /advice."
+            ]
 
 getAdviceJSON :: IO L.ByteString
 getAdviceJSON = simpleHttp adviceURL
